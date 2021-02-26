@@ -11,10 +11,8 @@ jobs:
         with:
           version: v1.37
   build-test:
-      strategy:
-        matrix:
-          os: [ubuntu-latest, macos-latest]
-      runs-on: ${{ matrix.os }}
+      name: build and test
+      runs-on: ubuntu-latest
       steps:
       - name: Install Go
         uses: actions/setup-go@v2
