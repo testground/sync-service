@@ -3,24 +3,18 @@
 #:::
 
 # GO_VERSION is the golang version this image will be built against.
-ARG GO_VERSION=1.14
+ARG GO_VERSION=1.16
 
 # Dynamically select the golang version.
 FROM golang:${GO_VERSION}-buster
 
+# Download and get deps.
 COPY /go.mod /go.mod
-COPY /pkg/sync/go.mod /pkg/sync/go.mod
-
-# Download deps.
 RUN cd / && go mod download
 
 # Now copy the rest of the source and run the build.
 COPY . /
-
-# Testground version
-ARG TG_VERSION
-
-RUN cd / && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/testground/testground/pkg/version.GitCommit=${TG_VERSION}" -o testground
+RUN cd / && go build -o service
 
 #:::
 #::: RUNTIME CONTAINER
@@ -29,13 +23,9 @@ RUN cd / && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.c
 FROM golang:${GO_VERSION}-buster
 
 RUN mkdir -p /usr/local/bin
-COPY --from=0 /testground /testground
-COPY --from=0 /static /static
-COPY --from=0 /tmpl /tmpl
+COPY --from=0 /service /service
 ENV PATH="/:/usr/local/bin:${PATH}"
 
 EXPOSE 5050
-
 WORKDIR "/"
-
-ENTRYPOINT [ "/sync" ]
+ENTRYPOINT [ "/service" ]

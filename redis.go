@@ -1,16 +1,23 @@
-package sync
+package main
 
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v7"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis/v7"
+	"go.uber.org/zap"
 )
 
 const (
 	RedisPayloadKey = "p"
+
+	// EnvRedisHost is the environment variable that should contain the redis host.
+	EnvRedisHost = "REDIS_HOST"
+
+	// DefaultRedisHost is the default redis host.
+	DefaultRedisHost = "testground-redis"
 )
 
 var DefaultRedisOpts = redis.Options{

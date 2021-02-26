@@ -1,11 +1,12 @@
-package sync
+package main
 
 import (
 	"fmt"
-	"github.com/go-redis/redis/v7"
-	"go.uber.org/zap"
 	"sync/atomic"
 	"time"
+
+	"github.com/go-redis/redis/v7"
+	"go.uber.org/zap"
 )
 
 const (

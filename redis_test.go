@@ -1,4 +1,4 @@
-package sync
+package main
 
 import (
 	"context"
@@ -6,17 +6,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v7"
-	"github.com/google/uuid"
-	"github.com/testground/testground/pkg/logging"
-	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 	"math/rand"
 	"os"
 	"os/exec"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/go-redis/redis/v7"
+	"github.com/google/uuid"
+	"github.com/testground/testground/pkg/logging"
+	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 func TestMain(m *testing.M) {

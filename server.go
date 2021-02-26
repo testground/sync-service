@@ -1,14 +1,15 @@
-package sync
+package main
 
 import (
 	"context"
 	"errors"
-	"github.com/testground/testground/pkg/logging"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
-	"nhooyr.io/websocket"
 	"strconv"
+
+	"github.com/testground/testground/pkg/logging"
+	"go.uber.org/zap"
+	"nhooyr.io/websocket"
 )
 
 type Server struct {

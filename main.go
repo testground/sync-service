@@ -6,13 +6,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/testground/sync-service"
 	"github.com/testground/testground/pkg/cmd"
 	"github.com/testground/testground/pkg/logging"
 )
-
-const envRedisHost = "REDIS_HOST"
-const defaultRedisHost = "testground-redis"
 
 func main() {
 	err := run()
@@ -25,12 +21,12 @@ func run() error {
 	ctx, cancel := context.WithCancel(cmd.ProcessContext())
 	defer cancel()
 
-	redisHost := os.Getenv(envRedisHost)
+	redisHost := os.Getenv(EnvRedisHost)
 	if redisHost == "" {
-		redisHost = defaultRedisHost
+		redisHost = DefaultRedisHost
 	}
 
-	service, err := sync.NewRedisService(ctx, logging.S(), &sync.RedisConfiguration{
+	service, err := NewRedisService(ctx, logging.S(), &RedisConfiguration{
 		Port: 6379,
 		Host: redisHost,
 	})
@@ -39,7 +35,7 @@ func run() error {
 	}
 	service.EnableBackgroundGC(nil)
 
-	srv, err := sync.NewServer(service, 5050)
+	srv, err := NewServer(service, 5050)
 	if err != nil {
 		return err
 	}

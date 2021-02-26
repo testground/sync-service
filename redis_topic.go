@@ -1,12 +1,13 @@
-package sync
+package main
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"github.com/go-redis/redis/v7"
 	"github.com/google/uuid"
-	"reflect"
 )
 
 // Publish publishes an item on the supplied topic. The payload type must match

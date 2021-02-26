@@ -1,13 +1,14 @@
-package sync
+package main
 
 import (
 	"context"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/testground/testground/pkg/logging"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
-	"sync"
-	"time"
 )
 
 type connection struct {
