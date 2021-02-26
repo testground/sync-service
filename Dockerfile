@@ -13,8 +13,8 @@ COPY /go.mod /go.mod
 RUN cd / && go mod download
 
 # Now copy the rest of the source and run the build.
-COPY . /
-RUN cd / && go build -o service
+COPY . /src
+RUN cd /src/cmd && go build -o service
 
 #:::
 #::: RUNTIME CONTAINER
@@ -23,9 +23,8 @@ RUN cd / && go build -o service
 FROM golang:${GO_VERSION}-buster
 
 RUN mkdir -p /usr/local/bin
-COPY --from=0 /service /service
+COPY --from=0 /src/cmd/service /service
 ENV PATH="/:/usr/local/bin:${PATH}"
 
 EXPOSE 5050
 WORKDIR "/"
-ENTRYPOINT [ "/service" ]
