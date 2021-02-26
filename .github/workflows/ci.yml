@@ -10,18 +10,21 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.37
-  test:
+  build-test:
       strategy:
         matrix:
-          go-version: [1.14.x, 1.15.x]
-          os: [ubuntu-latest, macos-latest, windows-latest]
+          os: [ubuntu-latest, macos-latest]
       runs-on: ${{ matrix.os }}
       steps:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.15.x
+      - name: Build
+        run: go build
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.2.0
       - name: Test
         run: go test ./...
