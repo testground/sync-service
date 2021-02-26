@@ -1,0 +1,28 @@
+name: ci
+on: [push]
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.37
+  build-test:
+      name: build and test
+      runs-on: ubuntu-latest
+      steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build
+        run: go build
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.2.0
+      - name: Test
+        run: go test ./...
