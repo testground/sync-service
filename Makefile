@@ -9,7 +9,7 @@ lint:
 	GOGC=75 golangci-lint run --concurrency 32 --deadline 4m ./...
 
 build:
-	go build
+	cd cmd && go build -o ../sync-service
 
 docker:
 	docker build -t iptestground/sync-service:edge -f Dockerfile .
