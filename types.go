@@ -73,6 +73,6 @@ type Response struct {
 	ID                  string               `json:"id"`
 	Error               string               `json:"error"`
 	PublishResponse     *PublishResponse     `json:"publish"`
-	SubscribeResponse   interface{}          `json:"subscribe"`
+	SubscribeResponse   string               `json:"subscribe"` // JSON encoded subscribe response.
 	SignalEntryResponse *SignalEntryResponse `json:"signal_entry"`
 }
