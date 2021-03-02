@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/testground/testground/pkg/logging"
 	"go.uber.org/zap"
 	"nhooyr.io/websocket"
@@ -50,7 +51,15 @@ func (s *Server) Port() int {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
+	var result *multierror.Error
+
+	result = multierror.Append(
+		result,
+		s.server.Shutdown(ctx),
+		s.service.Close(),
+	)
+
+	return result.ErrorOrNil()
 }
 
 func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
