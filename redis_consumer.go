@@ -186,10 +186,16 @@ RegenerateConnection:
 					subs = wrap.subs
 				}
 
+				val, ok := payload.(string)
+				if !ok {
+					sc.log.Warnw("XREAD response: message payload must be string, but is %v", payload)
+					continue
+				}
+
 				for _, sub := range subs {
 					sc.log.Debugw("dispatching message to subscriber", "key", xr.Stream, "id", msg.ID, "sub", sub.id)
 
-					if sent := sub.sendFn(payload); !sent {
+					if sent := sub.sendFn(val); !sent {
 						// we could not send value because context fired.
 						// skip all further messages on this stream, and queue for
 						// removal.

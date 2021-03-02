@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/go-redis/redis/v7"
 	"github.com/google/uuid"
@@ -70,20 +69,6 @@ func (s *RedisService) Subscribe(ctx context.Context, topic string) (*Subscripti
 		resultCh: make(chan error),
 		topic:    topic,
 	}
-
-	// sendFn is a closure that sends an element into the supplied ch and
-	// it will block if the receiver is not consuming from the channel.
-	// If the context is closed, the send will be aborted, and the closure will
-	// return a false value.
-	sub.sendFn = func(v interface{}) (sent bool) {
-		cases := []reflect.SelectCase{
-			{Dir: reflect.SelectSend, Chan: reflect.ValueOf(sub.outCh), Send: reflect.ValueOf(v)},
-			{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ctx.Done())},
-		}
-		_, _, ctxFired := reflect.Select(cases)
-		return !ctxFired
-	}
-
 	s.subCh <- sub
 	err := <-sub.resultCh
 	return &Subscription{

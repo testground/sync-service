@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -102,10 +103,19 @@ type subscription struct {
 	doneCh   chan error
 	resultCh chan error
 	topic    string
+}
 
-	// sendFn performs a select over outCh and the context, and returns true if
-	// we sent the value, or false if the context fired.
-	sendFn func(interface{}) (sent bool)
+// sendFn is a closure that sends an element into the supplied ch and
+// it will block if the receiver is not consuming from the channel.
+// If the context is closed, the send will be aborted, and the closure will
+// return a false value.
+func (sub *subscription) sendFn(v string) (sent bool) {
+	cases := []reflect.SelectCase{
+		{Dir: reflect.SelectSend, Chan: reflect.ValueOf(sub.outCh), Send: reflect.ValueOf(v)},
+		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(sub.ctx.Done())},
+	}
+	_, _, ctxFired := reflect.Select(cases)
+	return !ctxFired
 }
 
 // redisClient returns a Redis client constructed from this process' environment
