@@ -1,10 +1,14 @@
 package sync
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // Service is the implementation of a sync service. This service must support synchronization
 // actions such as pub-sub and barriers.
 type Service interface {
+	io.Closer
 	Publish(ctx context.Context, topic string, payload interface{}) (seq int64, err error)
 	Subscribe(ctx context.Context, topic string) (*Subscription, error)
 	Barrier(ctx context.Context, state string, target int64) error
@@ -14,7 +18,7 @@ type Service interface {
 // Subscription represents a subscription to a certain topic to which
 // other instances can publish.
 type Subscription struct {
-	outCh  chan interface{}
+	outCh  chan string
 	doneCh chan error
 }
 

@@ -98,7 +98,7 @@ type barrier struct {
 type subscription struct {
 	id       string
 	ctx      context.Context
-	outCh    chan interface{}
+	outCh    chan string
 	doneCh   chan error
 	resultCh chan error
 	topic    string
