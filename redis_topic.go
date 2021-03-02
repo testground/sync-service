@@ -65,7 +65,7 @@ func (s *RedisService) Subscribe(ctx context.Context, topic string) (*Subscripti
 	sub := &subscription{
 		id:       uuid.New().String()[24:],
 		ctx:      ctx,
-		outCh:    make(chan interface{}),
+		outCh:    make(chan string),
 		doneCh:   make(chan error, 1),
 		resultCh: make(chan error),
 		topic:    topic,
