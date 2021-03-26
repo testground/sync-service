@@ -28,3 +28,5 @@ ENV PATH="/:/usr/local/bin:${PATH}"
 
 EXPOSE 5050
 WORKDIR "/"
+ENTRYPOINT [ "/service" ]
+
