@@ -12,7 +12,7 @@ build:
 	cd cmd && go build -o ../sync-service
 
 docker:
-	docker build -t iptestground/sync-service:edge -f Dockerfile .
+	docker build -t iptestground/sync-service:latest -f Dockerfile .
 
 test:
 	go test ./...
