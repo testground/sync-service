@@ -9,6 +9,7 @@ import (
 	"github.com/testground/sync-service"
 	"github.com/testground/testground/pkg/cmd"
 	"github.com/testground/testground/pkg/logging"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
@@ -27,7 +28,12 @@ func run() error {
 		redisHost = sync.DefaultRedisHost
 	}
 
-	service, err := sync.NewRedisService(ctx, logging.S(), &sync.RedisConfiguration{
+	log := logging.S()
+	if os.Getenv("DEBUG") == "true" {
+		logging.SetLevel(zapcore.DebugLevel)
+	}
+
+	service, err := sync.NewRedisService(ctx, log, &sync.RedisConfiguration{
 		Port: 6379,
 		Host: redisHost,
 	})
