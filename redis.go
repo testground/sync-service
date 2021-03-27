@@ -125,18 +125,32 @@ func redisClient(ctx context.Context, log *zap.SugaredLogger, cfg *RedisConfigur
 		cfg.Port = 6379
 	}
 
-	log.Debugw("trying redis host", "host", cfg.Host, "port", cfg.Port)
-
 	opts := DefaultRedisOpts
 	opts.Addr = fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	client = redis.NewClient(&opts).WithContext(ctx)
 
-	if err := client.Ping().Err(); err != nil {
-		_ = client.Close()
-		log.Errorw("failed to ping redis host", "host", cfg.Host, "port", cfg.Port, "error", err)
-		return nil, err
-	}
+	for {
+		if err := ctx.Err(); err != nil {
+			_ = client.Close()
+			return nil, err
+		}
 
-	log.Debugw("redis ping OK", "opts", opts)
-	return client, nil
+		ok := func() bool {
+			log.Infow("trying redis host", "host", cfg.Host, "port", cfg.Port)
+			ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+			defer cancel()
+
+			if err := client.WithContext(ctx).Ping().Err(); err != nil {
+				log.Errorw("failed to ping redis host", "host", cfg.Host, "port", cfg.Port, "error", err)
+				return false
+			}
+
+			log.Info("redis OK")
+			return true
+		}()
+
+		if ok {
+			return client, nil
+		}
+	}
 }
