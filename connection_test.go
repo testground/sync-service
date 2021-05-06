@@ -6,7 +6,7 @@ import (
 )
 
 func getConnWithInMemService(ctx context.Context) *connection {
-	service, _ := getInMemService(ctx)
+	service, _ := getDefaultService(ctx)
 
 	conn := &connection{
 		service:     service,

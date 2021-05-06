@@ -10,16 +10,19 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/testground/testground/pkg/logging"
 	"golang.org/x/sync/errgroup"
 )
 
-type getServiceFunc func(ctx context.Context) (Service, error)
+func getDefaultService(ctx context.Context) (Service, error) {
+	return NewDefaultService(ctx, logging.S())
+}
 
-func testBarrier(t *testing.T, getService getServiceFunc) {
+func TestBarrier(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +32,7 @@ func testBarrier(t *testing.T, getService getServiceFunc) {
 	for i := 1; i <= 10; i++ {
 		if curr, err := service.SignalEntry(ctx, state); err != nil {
 			t.Fatal(err)
-		} else if curr != int64(i) {
+		} else if curr != i {
 			t.Fatalf("expected current count to be: %d; was: %d", i, curr)
 		}
 	}
@@ -40,11 +43,11 @@ func testBarrier(t *testing.T, getService getServiceFunc) {
 	}
 }
 
-func testBarrierBeyondTarget(t *testing.T, getService getServiceFunc) {
+func TestBarrierBeyondTarget(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,7 +57,7 @@ func testBarrierBeyondTarget(t *testing.T, getService getServiceFunc) {
 	for i := 1; i <= 20; i++ {
 		if curr, err := service.SignalEntry(ctx, state); err != nil {
 			t.Fatal(err)
-		} else if curr != int64(i) {
+		} else if curr != i {
 			t.Fatalf("expected current count to be: %d; was: %d", i, curr)
 		}
 	}
@@ -65,7 +68,7 @@ func testBarrierBeyondTarget(t *testing.T, getService getServiceFunc) {
 	}
 }
 
-func testBarrierZero(t *testing.T, getService getServiceFunc) {
+func TestBarrierZero(t *testing.T) {
 	timeout := time.After(3 * time.Second)
 	done := make(chan bool)
 	var errs error
@@ -78,7 +81,7 @@ func testBarrierZero(t *testing.T, getService getServiceFunc) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		service, err := getService(ctx)
+		service, err := getDefaultService(ctx)
 		if err != nil {
 			errs = err
 			return
@@ -101,11 +104,11 @@ func testBarrierZero(t *testing.T, getService getServiceFunc) {
 	}
 }
 
-func testBarrierCancel(t *testing.T, getService getServiceFunc) {
+func TestBarrierCancel(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +127,7 @@ func testBarrierCancel(t *testing.T, getService getServiceFunc) {
 	}
 }
 
-func testBarrierDeadline(t *testing.T, getService getServiceFunc) {
+func TestBarrierDeadline(t *testing.T) {
 	timeout := time.After(3 * time.Second)
 	done := make(chan bool)
 	var errs error
@@ -137,7 +140,7 @@ func testBarrierDeadline(t *testing.T, getService getServiceFunc) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		service, err := getService(ctx)
+		service, err := getDefaultService(ctx)
 		if err != nil {
 			errs = err
 			return
@@ -172,12 +175,11 @@ type TestPayload struct {
 	}
 }
 
-func testSubscribeAfterAllPublished(t *testing.T, getService getServiceFunc) {
+func TestSubscribeAfterAllPublished(t *testing.T) {
 	iterations := 1000
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +202,7 @@ func testSubscribeAfterAllPublished(t *testing.T, getService getServiceFunc) {
 	for i, s := range values {
 		if seq, err := service.Publish(context.Background(), topic, s); err != nil {
 			t.Fatalf("failed while writing key to subtree: %s", err)
-		} else if seq != int64(i)+1 {
+		} else if seq != i+1 {
 			t.Fatalf("expected seq == i+1; seq: %d; i: %d", seq, i)
 		}
 	}
@@ -236,12 +238,12 @@ func testSubscribeAfterAllPublished(t *testing.T, getService getServiceFunc) {
 	}
 }
 
-func testSubscribeFirstConcurrentWrites(t *testing.T, getService getServiceFunc) {
+func TestSubscribeFirstConcurrentWrites(t *testing.T) {
 	iterations := 1000
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -291,7 +293,7 @@ func testSubscribeFirstConcurrentWrites(t *testing.T, getService getServiceFunc)
 	}
 }
 
-func testSubscriptionConcurrentPublishersSubscribers(t *testing.T, getService getServiceFunc) {
+func TestSubscriptionConcurrentPublishersSubscribers(t *testing.T) {
 	var (
 		topics     = 100
 		iterations = 100
@@ -300,7 +302,7 @@ func testSubscriptionConcurrentPublishersSubscribers(t *testing.T, getService ge
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +349,7 @@ func testSubscriptionConcurrentPublishersSubscribers(t *testing.T, getService ge
 	}
 }
 
-func testSequenceOnWrite(t *testing.T, getService getServiceFunc) {
+func TestSequenceOnWrite(t *testing.T) {
 	var (
 		iterations = 1000
 		topic      = "pandemic:" + uuid.New().String()
@@ -356,7 +358,7 @@ func testSequenceOnWrite(t *testing.T, getService getServiceFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	service, err := getService(ctx)
+	service, err := getDefaultService(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -369,7 +371,7 @@ func testSequenceOnWrite(t *testing.T, getService getServiceFunc) {
 			t.Fatal(err)
 		}
 
-		if seq != int64(i) {
+		if seq != i {
 			t.Fatalf("expected seq %d, got %d", i, seq)
 		}
 	}
