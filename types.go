@@ -9,17 +9,10 @@ import (
 // actions such as pub-sub and barriers.
 type Service interface {
 	io.Closer
-	Publish(ctx context.Context, topic string, payload interface{}) (seq int64, err error)
-	Subscribe(ctx context.Context, topic string) (*Subscription, error)
-	Barrier(ctx context.Context, state string, target int64) error
-	SignalEntry(ctx context.Context, state string) (after int64, err error)
-}
-
-// Subscription represents a subscription to a certain topic to which
-// other instances can publish.
-type Subscription struct {
-	outCh  chan string
-	doneCh chan error
+	Publish(ctx context.Context, topic string, payload interface{}) (seq int, err error)
+	Subscribe(ctx context.Context, topic string) (*subscription, error)
+	Barrier(ctx context.Context, state string, target int) error
+	SignalEntry(ctx context.Context, state string) (after int, err error)
 }
 
 // PublishRequest represents a publish request.
@@ -30,7 +23,7 @@ type PublishRequest struct {
 
 // PublishResponse represents a publish response.
 type PublishResponse struct {
-	Seq int64 `json:"seq"`
+	Seq int `json:"seq"`
 }
 
 // SubscribeRequest represents a subscribe request.
@@ -41,7 +34,7 @@ type SubscribeRequest struct {
 // BarrierRequest represents a barrier response.
 type BarrierRequest struct {
 	State  string `json:"state"`
-	Target int64  `json:"target"`
+	Target int    `json:"target"`
 }
 
 // SignalEntryRequest represents a signal entry request.
@@ -51,7 +44,7 @@ type SignalEntryRequest struct {
 
 // SignalEntryResponse represents a signal entry response.
 type SignalEntryResponse struct {
-	Seq int64 `json:"seq"`
+	Seq int `json:"seq"`
 }
 
 // Request represents a request from the test instance to the sync service.
