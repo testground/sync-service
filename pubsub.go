@@ -7,41 +7,46 @@ import (
 	"time"
 )
 
-var (
-	ErrorWriteTimeout       = fmt.Errorf("writing to subscription timeout")
-	ErrorSubscriptionClosed = fmt.Errorf("subscription already closed")
-)
-
 type subscription struct {
+	sync.Mutex
 	ctx    context.Context
-	closed bool
-	last   int
 	outCh  chan string
 	doneCh chan error
+	last   int
+	closed bool
 }
 
 func (s *subscription) write(d time.Duration, msg string) error {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.closed {
-		return ErrorSubscriptionClosed
+		return fmt.Errorf("subscription already closed")
 	}
+
+	ctx, cancel := context.WithTimeout(s.ctx, d)
+	defer cancel()
 
 	select {
 	case s.outCh <- msg:
+		// Increment last for the next ID.
+		s.last++
 		return nil
-	case <-time.After(d):
-		return ErrorWriteTimeout
-	case <-s.ctx.Done():
-		return s.ctx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 
-func (s *subscription) closeWithContext() {
+func (s *subscription) close() {
+	s.Lock()
+	defer s.Unlock()
+
 	if s.closed {
 		return
 	}
 
-	s.doneCh <- s.ctx.Err()
 	s.closed = true
+	s.doneCh <- s.ctx.Err()
 	close(s.doneCh)
 	close(s.outCh)
 }
@@ -93,7 +98,7 @@ func (ps *pubsub) worker() {
 	for {
 		select {
 		case <-ticker.C:
-			ps.propagateMessages()
+			ps.writeMessages()
 		case <-ps.ctx.Done():
 			ps.cancel()
 			return
@@ -101,7 +106,7 @@ func (ps *pubsub) worker() {
 	}
 }
 
-func (ps *pubsub) propagateMessages() {
+func (ps *pubsub) writeMessages() {
 	ps.subsMu.RLock()
 	defer ps.subsMu.RUnlock()
 
@@ -110,22 +115,12 @@ func (ps *pubsub) propagateMessages() {
 			ps.msgsMu.RLock()
 			defer ps.msgsMu.RUnlock()
 
-			for i, msg := range ps.msgs[sub.last:] {
+			for _, msg := range ps.msgs[sub.last:] {
 				err := sub.write(time.Second*5, msg)
-
-				if err == ErrorWriteTimeout {
-					// TODO: log
-					break
-				} else if err == ErrorSubscriptionClosed {
-
-					break
-				} else if err != nil {
-					// TODO: log
-					sub.closeWithContext()
+				if err != nil {
+					log.Warnf("cannot send message to subscriber: %w", err)
 					break
 				}
-
-				sub.last = i + 1
 			}
 		}()
 	}
@@ -139,7 +134,7 @@ func (ps *pubsub) isDone() bool {
 		if sub.ctx.Err() == nil {
 			return false
 		} else if !sub.closed {
-			sub.closeWithContext()
+			sub.close()
 		}
 	}
 
@@ -153,7 +148,7 @@ func (ps *pubsub) close() {
 	defer ps.subsMu.Unlock()
 
 	for _, sub := range ps.subs {
-		sub.closeWithContext()
+		sub.close()
 	}
 
 	ps.wg.Wait()

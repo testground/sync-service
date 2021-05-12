@@ -38,17 +38,25 @@ func NewDefaultService(ctx context.Context, log *zap.SugaredLogger) (*DefaultSer
 	return s, nil
 }
 
-func (s *DefaultService) Publish(ctx context.Context, topic string, payload interface{}) (seq int, err error) {
+func (s *DefaultService) Publish(ctx context.Context, topic string, payload interface{}) (int, error) {
+	log := log.With("topic", topic)
+	log.Debugw("publishing item on topic", "payload", payload)
+
 	bytes, err := json.Marshal(payload)
 	if err != nil {
 		return -1, fmt.Errorf("failed while serializing payload: %w", err)
 	}
 
+	log.Debugw("serialized json payload", "json", string(bytes))
+
 	s.subsMu.Lock()
 	defer s.subsMu.Unlock()
 
 	ps := s.createSubIfNew(topic)
-	return ps.publish(string(bytes)), nil
+	seq := ps.publish(string(bytes))
+
+	log.Debugw("successfully published item; sequence number obtained", "seq", seq)
+	return seq, nil
 }
 
 func (s *DefaultService) Subscribe(ctx context.Context, topic string) (*subscription, error) {
@@ -76,6 +84,11 @@ func (s *DefaultService) createSubIfNew(topic string) *pubsub {
 }
 
 func (s *DefaultService) Barrier(ctx context.Context, state string, target int) error {
+	if target == 0 {
+		log.Warnw("requested a barrier with target zero; satisfying immediately", "state", state)
+		return nil
+	}
+
 	s.barriersMu.Lock()
 	barrier := s.createBarrierIfNew(state)
 	s.barriersMu.Unlock()
@@ -84,11 +97,16 @@ func (s *DefaultService) Barrier(ctx context.Context, state string, target int) 
 }
 
 func (s *DefaultService) SignalEntry(ctx context.Context, state string) (int, error) {
+	log.Debugw("signalling entry to state", "key", state)
+
 	s.barriersMu.Lock()
 	barrier := s.createBarrierIfNew(state)
 	s.barriersMu.Unlock()
 
-	return barrier.inc(), nil
+	seq := barrier.inc()
+	log.Debugw("new value of state", "key", state, "value", seq)
+
+	return seq, nil
 }
 
 func (s *DefaultService) createBarrierIfNew(state string) *barrier {
@@ -116,7 +134,9 @@ func (s *DefaultService) subscriptionGC() {
 	for {
 		select {
 		case <-tick.C:
+			log.Info("subscription gc running")
 			s.subsMu.Lock()
+
 			for topic, sub := range s.subs {
 				now := time.Now()
 				lastmod := sub.lastmod
@@ -132,11 +152,15 @@ func (s *DefaultService) subscriptionGC() {
 					(lastmod.Add(30 * time.Minute).Before(now))
 
 				if cancel {
+					log.Infow("subscription will be deleted", "topic", topic)
 					sub.close()
 					delete(s.subs, topic)
+					log.Infow("subscription deleted", "topic", topic)
 				}
 			}
+
 			s.subsMu.Unlock()
+			log.Info("subscription gc finished running")
 		case <-s.ctx.Done():
 			return
 		}
@@ -151,13 +175,18 @@ func (s *DefaultService) barriersGC() {
 	for {
 		select {
 		case <-tick.C:
+			log.Info("barrier gc running")
 			s.barriersMu.Lock()
-			for name, barrier := range s.barriers {
+
+			for state, barrier := range s.barriers {
 				if barrier.isDone() {
-					delete(s.barriers, name)
+					delete(s.barriers, state)
+					log.Infow("barrier deleted", "state", state)
 				}
 			}
+
 			s.barriersMu.Unlock()
+			log.Info("barrier gc finished running")
 		case <-s.ctx.Done():
 			return
 		}
