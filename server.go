@@ -9,21 +9,20 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/testground/testground/pkg/logging"
-	"go.uber.org/zap"
 	"nhooyr.io/websocket"
 )
+
+var log = logging.S()
 
 type Server struct {
 	service Service
 	server  *http.Server
 	l       net.Listener
-	log     *zap.SugaredLogger
 }
 
 func NewServer(service Service, port int) (srv *Server, err error) {
 	srv = &Server{
 		service: service,
-		log:     logging.S(),
 	}
 
 	srv.server = &http.Server{
@@ -67,7 +66,7 @@ func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
 		InsecureSkipVerify: true, // Accept requests from all domains.
 	})
 	if err != nil {
-		s.log.Warnf("could not upgrade connection: %v", err)
+		log.Warnf("could not upgrade connection: %v", err)
 		return
 	}
 
@@ -96,11 +95,11 @@ func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
 		websocket.CloseStatus(err) == websocket.StatusNormalClosure ||
 		websocket.CloseStatus(err) == websocket.StatusGoingAway {
 		// Client closed the connection by itself.
-		s.log.Info("client closed connection")
+		log.Info("client closed connection")
 		_ = c.Close(websocket.StatusNormalClosure, "")
 		return
 	}
 
-	s.log.Warnf(" websocket closed unexpectedly: %v", err)
+	log.Warnf(" websocket closed unexpectedly: %v", err)
 	_ = c.Close(websocket.StatusInternalError, "")
 }
