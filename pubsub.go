@@ -2,8 +2,14 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
+)
+
+var (
+	ErrorWriteTimeout       = fmt.Errorf("writing to subscription timeout")
+	ErrorSubscriptionClosed = fmt.Errorf("subscription already closed")
 )
 
 type subscription struct {
@@ -12,6 +18,21 @@ type subscription struct {
 	last   int
 	outCh  chan string
 	doneCh chan error
+}
+
+func (s *subscription) write(d time.Duration, msg string) error {
+	if s.closed {
+		return ErrorSubscriptionClosed
+	}
+
+	select {
+	case s.outCh <- msg:
+		return nil
+	case <-time.After(d):
+		return ErrorWriteTimeout
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	}
 }
 
 func (s *subscription) closeWithContext() {
@@ -72,31 +93,41 @@ func (ps *pubsub) worker() {
 	for {
 		select {
 		case <-ticker.C:
-			ps.subsMu.RLock()
-			for _, sub := range ps.subs {
-				ps.msgsMu.RLock()
-				for _, msg := range ps.msgs[sub.last:] {
-					if !sub.closed && sub.ctx.Err() == nil {
-						sub.outCh <- msg
-					} else if !sub.closed {
-						sub.closeWithContext()
-						break
-					}
-				}
-				sub.last = len(ps.msgs)
-				ps.msgsMu.RUnlock()
-			}
-			ps.subsMu.RUnlock()
+			ps.propagateMessages()
 		case <-ps.ctx.Done():
-			ps.subsMu.Lock()
-			defer ps.subsMu.Unlock()
-
-			for _, sub := range ps.subs {
-				sub.closeWithContext()
-			}
-
+			ps.cancel()
 			return
 		}
+	}
+}
+
+func (ps *pubsub) propagateMessages() {
+	ps.subsMu.RLock()
+	defer ps.subsMu.RUnlock()
+
+	for _, sub := range ps.subs {
+		func() {
+			ps.msgsMu.RLock()
+			defer ps.msgsMu.RUnlock()
+
+			for i, msg := range ps.msgs[sub.last:] {
+				err := sub.write(time.Second*5, msg)
+
+				if err == ErrorWriteTimeout {
+					// TODO: log
+					break
+				} else if err == ErrorSubscriptionClosed {
+
+					break
+				} else if err != nil {
+					// TODO: log
+					sub.closeWithContext()
+					break
+				}
+
+				sub.last = i + 1
+			}
+		}()
 	}
 }
 
@@ -117,5 +148,13 @@ func (ps *pubsub) isDone() bool {
 
 func (ps *pubsub) close() {
 	ps.cancel()
+
+	ps.subsMu.Lock()
+	defer ps.subsMu.Unlock()
+
+	for _, sub := range ps.subs {
+		sub.closeWithContext()
+	}
+
 	ps.wg.Wait()
 }
