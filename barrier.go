@@ -26,8 +26,7 @@ func (b *barrier) wait(ctx context.Context, target int) error {
 	// It also returns if the context fires.
 	zc := newZeroCounter(ctx, target-b.count)
 
-	// TODO: Or do a simpler way where we just pool every 100ms to see if count has
-	// the correct value or ctx fired. Less code and less complexity.
+	// Store the zero counter, unlock the barrier and wait for it to be reached.
 	b.zcs = append(b.zcs, zc)
 	b.Unlock()
 	return zc.wait()
