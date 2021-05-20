@@ -22,10 +22,10 @@ func TestPerfBarrier(t *testing.T) {
 
 	state := "yoda:" + uuid.New().String()
 
-	workers := 5
-	iterations := 100000
+	workers := 1000
+	iterations := 1000
 
-	for i := 1; i <= workers; i++ {
+	for i := 0; i < workers; i++ {
 		go func(t *testing.T) {
 			for i := 1; i <= iterations; i++ {
 				if _, err := service.SignalEntry(ctx, state); err != nil {
