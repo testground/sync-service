@@ -4,6 +4,7 @@ package sync
 
 import (
 	"context"
+	gosync "sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ func TestPerfBarrier(t *testing.T) {
 	state := "yoda:" + uuid.New().String()
 
 	workers := 1000
+	barriers := 1000
 	iterations := 1000
 
 	for i := 0; i < workers; i++ {
@@ -35,8 +37,18 @@ func TestPerfBarrier(t *testing.T) {
 		}(t)
 	}
 
-	err = service.Barrier(ctx, state, int64(workers*iterations))
-	if err != nil {
-		t.Fatal(err)
+	wg := gosync.WaitGroup{}
+	wg.Add(barriers)
+
+	for i := 0; i < barriers; i++ {
+		go func(t *testing.T) {
+			err = service.Barrier(ctx, state, int64(workers*iterations))
+			if err != nil {
+				t.Error(err)
+			}
+			wg.Done()
+		}(t)
 	}
+
+	wg.Wait()
 }
