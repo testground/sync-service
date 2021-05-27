@@ -65,16 +65,17 @@ func (b *barrier) isDone() bool {
 type zeroCounter struct {
 	sync.Mutex
 	ctx    context.Context
-	ch     chan struct{}
-	closed bool
+	cancel context.CancelFunc
 	count  int
 }
 
 func newZeroCounter(ctx context.Context, target int) *zeroCounter {
+	ctx, cancel := context.WithCancel(ctx)
+
 	return &zeroCounter{
-		count: target,
-		ctx:   ctx,
-		ch:    make(chan struct{}),
+		count:  target,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -82,26 +83,29 @@ func (w *zeroCounter) dec() {
 	w.Lock()
 	defer w.Unlock()
 
-	if w.closed {
+	if w.count <= 0 {
 		return
 	}
 
 	w.count -= 1
 	if w.count <= 0 {
-		w.closed = true
-		close(w.ch)
+		w.cancel()
 	}
 }
 
 func (w *zeroCounter) wait() error {
-	select {
-	case <-w.ctx.Done():
-		return w.ctx.Err()
-	case <-w.ch:
+	<-w.ctx.Done()
+
+	// If the counter is done, i.e., if it
+	// reached 0 or lower, we do not return
+	// an error.
+	if w.done() {
 		return nil
 	}
+
+	return w.ctx.Err()
 }
 
 func (w *zeroCounter) done() bool {
-	return w.closed
+	return w.count <= 0
 }
