@@ -60,9 +60,13 @@ func (s *DefaultService) Publish(ctx context.Context, topic string, payload inte
 }
 
 func (s *DefaultService) Subscribe(ctx context.Context, topic string) (*subscription, error) {
+	log := log.With("topic", topic)
+	log.Debugw("subscribing to topic")
+
 	s.subsMu.Lock()
 	defer s.subsMu.Unlock()
 
+	defer log.Debugw("subscribed to topic")
 	ps := s.createSubIfNew(topic)
 	return ps.subscribe(ctx), nil
 }
