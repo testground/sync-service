@@ -156,10 +156,10 @@ func (s *DefaultService) subscriptionGC() {
 					(lastmod.Add(30 * time.Minute).Before(now))
 
 				if cancel {
-					log.Infow("subscription will be deleted", "topic", topic)
+					log.Debugw("subscription will be deleted", "topic", topic)
 					sub.close()
 					delete(s.subs, topic)
-					log.Infow("subscription deleted", "topic", topic)
+					log.Debugw("subscription deleted", "topic", topic)
 				}
 			}
 
@@ -185,7 +185,7 @@ func (s *DefaultService) barriersGC() {
 			for state, barrier := range s.barriers {
 				if barrier.isDone() {
 					delete(s.barriers, state)
-					log.Infow("barrier deleted", "state", state)
+					log.Debugw("barrier deleted", "state", state)
 				}
 			}
 
