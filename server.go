@@ -100,6 +100,6 @@ func (s *Server) handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Warnf(" websocket closed unexpectedly: %v", err)
+	log.Warnf("websocket closed unexpectedly: %v", err)
 	_ = c.Close(websocket.StatusInternalError, "")
 }
