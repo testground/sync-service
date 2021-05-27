@@ -152,7 +152,7 @@ func (s *DefaultService) subscriptionGC() {
 					(lastmod.Add(30 * time.Minute).Before(now))
 
 				if cancel {
-					log.Infow("subscription will be deleted", "topic", topic)
+					log.Debugw("subscription will be deleted", "topic", topic)
 					sub.close()
 					delete(s.subs, topic)
 					log.Debugw("subscription deleted", "topic", topic)
