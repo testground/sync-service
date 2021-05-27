@@ -181,7 +181,7 @@ func (s *DefaultService) barriersGC() {
 			for state, barrier := range s.barriers {
 				if barrier.isDone() {
 					delete(s.barriers, state)
-					log.Infow("barrier deleted", "state", state)
+					log.Debugw("barrier deleted", "state", state)
 				}
 			}
 
