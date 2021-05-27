@@ -155,7 +155,7 @@ func (s *DefaultService) subscriptionGC() {
 					log.Infow("subscription will be deleted", "topic", topic)
 					sub.close()
 					delete(s.subs, topic)
-					log.Infow("subscription deleted", "topic", topic)
+					log.Debugw("subscription deleted", "topic", topic)
 				}
 			}
 
