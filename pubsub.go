@@ -52,16 +52,28 @@ func (s *subscription) close() {
 }
 
 type pubsub struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
+	// ctx includes the context of the caller's context, wrapped
+	// by cancelation through cancel.
+	ctx    context.Context
+	cancel context.CancelFunc
+
+	// lastmod tracks the last time this pubsub instance was accessed
+	// i.e., the last time something, or someone, subscribed or published.
 	lastmod time.Time
-	wg      sync.WaitGroup
 
-	msgsMu sync.RWMutex
+	// wg tracks if the worker for this pubsub instance is done or not.
+	// The worker stops when the context is canceled.
+	wg sync.WaitGroup
+
+	// msgs tracks all the messages published to this pubsub instance.
+	// It is needed so when new subscriptions are created, we can send
+	// all messages retroactively, in order.
 	msgs   []string
+	msgsMu sync.RWMutex
 
-	subsMu sync.RWMutex
+	// subs tracks the subscriptions for this pubsub instance.
 	subs   []*subscription
+	subsMu sync.RWMutex
 }
 
 func (ps *pubsub) subscribe(ctx context.Context) *subscription {
