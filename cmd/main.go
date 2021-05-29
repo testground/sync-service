@@ -23,24 +23,15 @@ func run() error {
 	ctx, cancel := context.WithCancel(cmd.ProcessContext())
 	defer cancel()
 
-	redisHost := os.Getenv(sync.EnvRedisHost)
-	if redisHost == "" {
-		redisHost = sync.DefaultRedisHost
-	}
-
 	log := logging.S()
 	if os.Getenv("DEBUG") == "true" {
 		logging.SetLevel(zapcore.DebugLevel)
 	}
 
-	service, err := sync.NewRedisService(ctx, log, &sync.RedisConfiguration{
-		Port: 6379,
-		Host: redisHost,
-	})
+	service, err := sync.NewDefaultService(ctx, log)
 	if err != nil {
 		return err
 	}
-	service.EnableBackgroundGC(nil)
 
 	srv, err := sync.NewServer(service, 5050)
 	if err != nil {

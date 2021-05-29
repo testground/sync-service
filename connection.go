@@ -38,7 +38,7 @@ func (c *connection) consumeRequests() error {
 			c.cancelFuncsMu.Unlock()
 
 			if cancel == nil {
-				logging.S().Warnw("attempt to cancel uncancellable request", "id", req.ID)
+				logging.S().Warnw("attempt to cancel not cancellable request", "id", req.ID)
 				continue
 			}
 		}

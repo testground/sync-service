@@ -3,7 +3,6 @@ module github.com/testground/sync-service
 go 1.16
 
 require (
-	github.com/go-redis/redis/v7 v7.4.0
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/testground/testground v0.5.3
