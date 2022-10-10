@@ -10,3 +10,5 @@ require (
 	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a
 	nhooyr.io/websocket v1.8.6
 )
+
+replace nhooyr.io/websocket => github.com/nhooyr/websocket v1.8.6
